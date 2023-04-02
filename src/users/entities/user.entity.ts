@@ -7,4 +7,5 @@ export class IsUser extends Document {
   readonly username: string;
   readonly role: boolean;
   readonly image?: string;
+  readonly googleId?: string;
 }

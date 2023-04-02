@@ -14,6 +14,9 @@ import { InjectModel } from '@nestjs/mongoose';
 
 import { LoginAuthDto } from './dto/login-auth.dto';
 import { JwtService } from '@nestjs/jwt';
+import { CreateAdminDto } from 'src/users/dto/create-admin.dto';
+import { GoogleUserDto } from './dto/google-user.dto';
+import { JwtPayload } from './jwt-payload.interface';
 
 @Injectable()
 export class AuthService {
@@ -76,6 +79,46 @@ export class AuthService {
     }
   }
 
+  async createAdmin(
+    createAdminDto: CreateAdminDto,
+  ): Promise<{ token: string }> {
+    try {
+      const { email, username, password, role } = createAdminDto;
+
+      const existingUser = await this.userModel.findOne({ email });
+      if (existingUser) {
+        throw new HttpException(
+          'An account with that email already exists!',
+          HttpStatus.CONFLICT,
+        );
+      }
+      console.log(createAdminDto);
+      const usernameExits = await this.userModel.findOne({ username });
+
+      if (usernameExits) {
+        throw new HttpException(
+          'An account with that username already exists!',
+          HttpStatus.CONFLICT,
+        );
+      }
+
+      this.validatePasswordString(password);
+
+      const hashedPassword = await bcrypt.hash(password, 12);
+      const user = await this.userModel.create({
+        email,
+        username,
+        password: hashedPassword,
+      });
+
+      const token = this.jwtService.sign({ id: user._id });
+
+      return { token };
+    } catch (error) {
+      console.log(error.message);
+    }
+  }
+
   async dosePasswordMatch(
     password: string,
     hashedPassword: string,
@@ -100,6 +143,32 @@ export class AuthService {
     if (!doesPasswordMatch) return null;
 
     return user;
+  }
+
+  async signInGoogle(googleUserDto: GoogleUserDto) {
+    const { email, profile } = googleUserDto;
+    const user = await this.userModel.findOne({ email });
+
+    if (!user) {
+      const googleUser = await new this.userModel({
+        email,
+        googleId: profile.id,
+      });
+      googleUser.save();
+    }
+
+    const payload: JwtPayload = { email };
+    const accessToken: string = await this.jwtService.sign(payload);
+
+    return accessToken;
+  }
+
+  async getGoogleUser(email: string, profile: any) {
+    const user = this.userModel.findOne({ email });
+    const googleUser =
+      user || (await new this.userModel({ email, googleId: profile.id }));
+
+    return googleUser;
   }
 
   async login(loginAuthDto: LoginAuthDto): Promise<{ token: string } | null> {
