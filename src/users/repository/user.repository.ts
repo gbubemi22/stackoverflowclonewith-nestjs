@@ -25,6 +25,16 @@ export class UserRepository {
     return user;
   }
 
+  public async updateUserImage(id: string, imagePath: string): Promise<IsUser> {
+    const user = await this.userModel.findByIdAndUpdate(
+      id,
+      { image: imagePath },
+      { new: true },
+    );
+
+    return user;
+  }
+
   // public async getUserByEmail(email: string): Promise<IsUser> {
   //   const result = await this.userModel.findOne(email);
   //   if (!result) {

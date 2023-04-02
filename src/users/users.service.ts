@@ -31,7 +31,9 @@ export class UsersService {
 
   //   return result;
   // }
-
+  async updateUserImage(id: string, imagePath: string) {
+    return this.userRepository.updateUserImage(id, imagePath);
+  }
   async findByUsername(username: string): Promise<IsUser> {
     const result = await this.userRepository.getUserByUsername(username);
 
